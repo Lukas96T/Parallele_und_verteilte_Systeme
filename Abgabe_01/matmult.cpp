@@ -100,24 +100,25 @@ int main(int argc, char *argv[])
 
     printf("This task took %f seconds\n", end - start);
 	
-	float start2 = omp_get_wtime();
+	start = omp_get_wtime();
 
 	printf("\nPerform matrix multiplication not parallel\n");
 	
-for (i = 0; i < d1; i++)
-       for (j = 0; j < d3; j++)
-          for (k = 0; k < d2; k++)
-             C[i][j] += A[i][k] * B[k][j];
+	for (i = 0; i < d1; i++)
+       		for (j = 0; j < d3; j++)
+          		for (k = 0; k < d2; k++)
+             		C[i][j] += A[i][k] * B[k][j];
 
 
 
-	 float end2 = omp_get_wtime();
+	end = omp_get_wtime();
 
-    printf("This task took %f seconds\n", end2 - start2);
+    	printf("This task took %f seconds\n", end - start);
 
 	if(C == D)
-{printf("\nSind gleich\n");
-}
+	{
+	printf("\nSind gleich\n");
+	}
 
     return 0;
 }
