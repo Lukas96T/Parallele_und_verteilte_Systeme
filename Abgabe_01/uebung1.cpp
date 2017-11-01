@@ -41,5 +41,8 @@ int main(int argc, char* argv[])
 /**
 Aufgabe 1.3:
 
+Je nach dem welche Zahl als Parameter für num_Threads eingesetzt wird, so viele Threads werden auch erstellt
+d.h. der Block zwischen den Klammern nach #pragma omp parallel num_threads() wird so oft parallel ausgeführt
+wie bei num_threads angegeben wird 
 
 */
