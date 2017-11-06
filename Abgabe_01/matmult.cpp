@@ -52,8 +52,8 @@ int main(int argc, char *argv[])
 {
 	float start = omp_get_wtime();
 
-
-	float **A, **B, **C;	// matrices
+	
+	float **A, **B, **C, **D;	// matrices
     int d1, d2, d3;         // dimensions of matrices
     int i, j, k;			// loop variables
 
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     /* read user input */
     d1 = atoi(argv[1]);		// rows of A and C
     d2 = atoi(argv[2]);     // cols of A and rows of B
-    d3 = atoi(argv[3]);     // cols of B and C
+    d3 = atoi(argv[3]);     // cols of B and C	
 
     printf("Matrix sizes C[%d][%d] = A[%d][%d] x B[%d][%d]\n", d1, d3, d1, d2, d2, d3);
 
@@ -92,12 +92,33 @@ int main(int argc, char *argv[])
     //print_mat(A, d1, d2, "A"); 
     //print_mat(B, d2, d3, "B"); 
     //print_mat(C, d1, d3, "C"); 
+	D = C;
 
     printf ("\nDone.\n");
 
     float end = omp_get_wtime();
 
     printf("This task took %f seconds\n", end - start);
+	
+	start = omp_get_wtime();
+
+	printf("\nPerform matrix multiplication not parallel\n");
+	
+	for (i = 0; i < d1; i++)
+       		for (j = 0; j < d3; j++)
+          		for (k = 0; k < d2; k++)
+             		C[i][j] += A[i][k] * B[k][j];
+
+
+
+	end = omp_get_wtime();
+
+    	printf("This task took %f seconds\n", end - start);
+
+	if(C == D)
+	{
+	printf("\nSind gleich\n");
+	}
 
     return 0;
 }
