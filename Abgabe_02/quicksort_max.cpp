@@ -17,13 +17,12 @@ void swap(float *v, int i, int j)
 // ---------------------------------------------------------------------------
 // Parallele Version von Quicksort (Wirth) 
 
-void quicksort_parallel(float *v, int start, int end, int depth) 
+void quicksort(float *v, int start, int end, int depth) 
 {
     int i = start, j = end;
     float pivot;
-    depth++;
+    depth--;
 
-    if(depth < 8){
     pivot = v[(start + end) / 2];                         // mittleres Element
     do {
         while (v[i] < pivot)
@@ -36,59 +35,22 @@ void quicksort_parallel(float *v, int start, int end, int depth)
             j--;
         }
     } while (i <= j);
-    if (start < j)                                        // Teile und herrsche
-        #pragma omp task
-        quicksort_parallel(v, start, j, depth);                      // Linkes Segment zerlegen
+    if (start < j)
+        if(depth > 0){                                      // Teile und herrsche
+            #pragma omp task                        //alternativ mit #pragma omp parallel
+            quicksort(v, start, j, depth);                      // Linkes Segment zerlegen
+        }else{
+            quicksort(v, start, j, 0);
+        }              
     if (i < end)
-        #pragma omp task
-        quicksort_parallel(v, i, end, depth);                       // Rechtes Segment zerlegen
-
-    }else
-    {
-    pivot = v[(start + end) / 2];                         // mittleres Element
-    do {
-        while (v[i] < pivot)
-            i++;
-        while (pivot < v[j])
-            j--;
-        if (i <= j) {               // wenn sich beide Indizes nicht beruehren
-            swap(v, i, j);
-            i++;
-            j--;
+        if(depth > 0){
+            #pragma omp task                        //alternativ mit #pragma omp parallel
+            quicksort(v, i, end, depth);                       // Rechtes Segment zerlegen
+        }else{
+            quicksort(v, i, end, 0); 
         }
-    } while (i <= j);
-    if (start < j)                                        // Teile und herrsche
-        quicksort_parallel(v, start, j, depth);                      // Linkes Segment zerlegen
-    if (i < end)
-        quicksort_parallel(v, i, end, depth);                       // Rechtes Segment zerlegen
-    }
 }
 
-// ---------------------------------------------------------------------------
-// Serielle Version von Quicksort (Wirth) 
-
-void quicksort(float *v, int start, int end) 
-{
-    int i = start, j = end;
-    float pivot;
-
-    pivot = v[(start + end) / 2];                         // mittleres Element
-    do {
-        while (v[i] < pivot)
-            i++;
-        while (pivot < v[j])
-            j--;
-        if (i <= j) {               // wenn sich beide Indizes nicht beruehren
-            swap(v, i, j);
-            i++;
-            j--;
-        }
-   } while (i <= j);
-   if (start < j)                                        // Teile und herrsche
-       quicksort(v, start, j);                      // Linkes Segment zerlegen
-   if (i < end)
-       quicksort(v, i, end);                       // Rechtes Segment zerlegen
-}
 
 // ---------------------------------------------------------------------------
 // Hauptprogramm
@@ -96,10 +58,14 @@ void quicksort(float *v, int start, int end)
 int main(int argc, char *argv[])
 {
     float *v;                                                         // Feld
-    float *w;                            
+    float *w;
+    float *x;
+    float *y;
     int iter;                                                // Wiederholungen
 
-    float time_parallel = 0;
+    float time_parallel_1 = 0;
+    float time_parallel_2 = 0;
+    float time_parallel_3 = 0;
     float time = 0;
     float start = 0;
     float end = 0;  
@@ -113,35 +79,76 @@ int main(int argc, char *argv[])
     iter = atoi(argv[1]);                               
     v = (float *) calloc(NUM, sizeof(float));        // Speicher reservieren
     w = (float *) calloc(NUM, sizeof(float));
+    x = (float *) calloc(NUM, sizeof(float));
+    y = (float *) calloc(NUM, sizeof(float));
 
     printf("Perform vector sorting %d times...\n", iter);
 
-    for (int i = 0; i < iter; i++) {               // Wiederhole das Sortieren
+
+    //pragma omp for                        als Variante für Parallelisierung, würde allerdings 
+                                            //nicht quicksort selbst parallelisieren, sondern nur die 
+                                            //einzelnen seriellen quicksorts parallel aufrufen
+    for (int i = 0; i < iter; i++) {        // Wiederhole das Sortieren
         for (int j = 0; j < NUM; j++){      // Mit Zufallszahlen initialisieren
             temp = (float)rand();
             v[j] = temp;
             w[j] = temp;
+            x[j] = temp;
+            y[j] = temp;
         }
+
         start = omp_get_wtime();
-        quicksort(v, 0, NUM-1);                              // Sortierung
+        quicksort(v, 0, NUM-1,0);                              // Sortierung
         end = omp_get_wtime();
         time += end - start;
 
         start = omp_get_wtime();
-        quicksort_parallel(w, 0, NUM-1,0);
+        #pragma omp parallel
+        {
+            #pragma omp single nowait
+            {
+                quicksort(w, 0, NUM-1,2); //festgelegte Tiefe = 2, wie oft parallelsiert werden soll
+            }                             //geringer Speedup, weil nicht oft genug parallelisiert wird
+        }
         end = omp_get_wtime();
-        time_parallel += end - start;
+        time_parallel_1 += end - start;
+
+        start = omp_get_wtime();
+        #pragma omp parallel
+        {
+            #pragma omp single nowait
+            {
+                quicksort(x, 0, NUM-1,10); //festgelegte Tiefe = 10, wie oft parallelsiert werden soll
+            }                              //hoher Speedup, weil viel parallelsiert wird, aber das er-
+        }                                  //stellen der Threads nicht zu zeitaufwändig wird
+        end = omp_get_wtime();
+        time_parallel_2 += end - start;
+
+        start = omp_get_wtime();
+        #pragma omp parallel
+        {
+            #pragma omp single nowait
+            {
+                quicksort(y, 0, NUM-1,100); //festgelegte Tiefe = 100, wie oft parallelsiert werden soll
+            }                               //geringer Speedup, weil die erstellung so vieler Threads zu
+        }                                   //zeitaufwändig ist
+        end = omp_get_wtime();
+        time_parallel_3 += end - start;
 
         for (int j = 0; j < NUM; j++){
-            if(v[j] != w[j])
+            if(v[j] != x[j] || v[j] != w[j] || v[j] != y[j])
             equal = false;
         }
     }
-    printf("\nParallel in %f seconds.",time_parallel);
-    printf("\nNonparallel in %f seconds.",time);
-    printf ("\nSpeedup: %f\n", time/time_parallel);
+    printf("\nNonparallel in %f seconds.\n",time);
+    printf("\nParallel with depth 2 in %f seconds.",time_parallel_1);
+    printf ("\nSpeedup: %f\n", time/time_parallel_1);
+    printf("\nParallel with depth 10 in %f seconds.",time_parallel_2);
+    printf ("\nSpeedup: %f\n", time/time_parallel_2);
+    printf("\nParallel with depth 100 in %f seconds.",time_parallel_3);
+    printf ("\nSpeedup: %f\n", time/time_parallel_3);
 
     if(equal == true)
-    printf("\nQuicksort is working\n");
+        printf("\nQuicksort is working\n");
     return 0;
 }
