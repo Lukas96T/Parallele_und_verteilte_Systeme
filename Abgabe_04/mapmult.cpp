@@ -200,7 +200,7 @@ int main (int argc, char *argv[])
                 is_correct(C, TestMat, D1, D3);                             // Ergebnis ueberpruefen
             }
 
-            if (variante == 2){
+            if (variante == 2){ //Hat beim Ausführen Fehler, die ich nicht verstehe und funktioniert nicht
 
                 workers = tasks-1;
                 averow = D1 / workers;                                 // Mittlere Blockgr��e 
@@ -234,7 +234,10 @@ int main (int argc, char *argv[])
             }
 
             if (variante == 3){
-                
+                /* Habe keine möglichkeit gefunden MPI_Scatter zu verwenden die compiliert
+                theoretisch: Versenden der Matrix B und Zeilen der Matrix A als buffer
+                dann MPI_Garther für die einzelnen Teilergebnisse
+                */ 
             }
         }
 
@@ -276,7 +279,9 @@ int main (int argc, char *argv[])
             }
 
             if (variante == 3){
-
+                /*
+                Wie oben. Fehler beim Compilieren für Variante 3 
+                */
             }
         }
     }
